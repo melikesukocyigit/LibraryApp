@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.turkcell.libraryapp.data.model.Book
 
+
 @Composable
 fun BookCard(
     book: Book,
@@ -108,3 +109,4 @@ fun BookCard(
         }
     }
 }
+//
