@@ -10,6 +10,7 @@ import com.turkcell.libraryapp.ui.screen.RegisterScreen
 import com.turkcell.libraryapp.ui.viewmodel.AuthViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.turkcell.libraryapp.ui.screen.HomeScreen
+import com.turkcell.libraryapp.ui.screen.SplashScreen
 import com.turkcell.libraryapp.ui.viewmodel.BookViewModel
 
 @Composable
@@ -21,6 +22,32 @@ fun NavGraph(navController: NavHostController = rememberNavController()) {
         navController = navController,
         startDestination = Screen.Login.route
     ) {
+        composable(Screen.Splash.route) {
+            SplashScreen(authViewModel,
+                onAuthenticated = { role ->
+                    navController.navigate(Screen.Homepage.route){
+                        popUpTo(Screen.Splash.route) {inclusive=true}
+                    }
+                },
+                onUnauthenticated = {
+                    navController.navigate(Screen.Login.route)
+                    {
+                        popUpTo(Screen.Splash.route) {inclusive=true}
+                    }
+                })
+        }
+        composable(Screen.Login.route) { LoginScreen(
+            onNavigateToRegister = { navController.navigate(Screen.Register.route) },
+            onLoginSuccess = {role ->
+                navController.navigate(Screen.Homepage.route) {
+                    popUpTo(Screen.Login.route) {inclusive=true}
+                    // Yığın yalnızca verilen URL ile kalacaktı (false)
+                }
+            },
+            authViewModel
+        ) }
+
+
         // GİRİŞ EKRANI
         composable(Screen.Login.route) {
             LoginScreen(
