@@ -73,17 +73,17 @@ class BookViewModel : ViewModel() {
     }
 
     // Kitap Ekleme Fonksiyonu
-    fun addBook(title: String, author: String, category: String) {
+    fun addBook(title: String, author: String, category: String, stock: Int) {
         viewModelScope.launch {
             _isLoading.value = true
             val newBook = Book(
-                id = java.util.UUID.randomUUID().toString(), // Benzersiz ID üretiyoruz
+                id = java.util.UUID.randomUUID().toString(),
                 title = title,
                 author = author,
                 category = category,
                 pageCount = 0,
-                totalCopies = 1,
-                avaiableCopies = 1
+                totalCopies = stock,       // Kullanıcının girdiği stok
+                avaiableCopies = stock     // Başlangıçta tamamı kütüphanede
             )
             repository.addBook(newBook).onSuccess { loadBooks() }
             _isLoading.value = false
@@ -94,30 +94,38 @@ class BookViewModel : ViewModel() {
         viewModelScope.launch {
             _isLoading.value = true
 
-            val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
-            val calendar = java.util.Calendar.getInstance()
-            val borrowedAt = sdf.format(calendar.time) // Bugün
+            repository.getBorrowRecordsByUserId(studentId).onSuccess { records ->
 
-            calendar.add(java.util.Calendar.DAY_OF_YEAR, 5)
-            val dueDate = sdf.format(calendar.time) // 5 Gün Sonra
+                val alreadyBorrowed = records.any { it.bookId == book.id && it.returnedAt == null }
 
-            val record = BorrowRecord(
-                id = java.util.UUID.randomUUID().toString(),
-                studentId = studentId,
-                bookId = book.id,
-                borrowedAt = borrowedAt,
-                dueDate = dueDate,
-                returnedAt = null
-            )
-
-            // Kaydı oluştur, başarılıysa stoku düşür ve sayfayı yenile
-            repository.addBorrowRecord(record).onSuccess {
-                val updatedBook = book.copy(avaiableCopies = book.avaiableCopies - 1)
-                repository.updateBook(updatedBook.id, updatedBook).onSuccess {
-                    loadBooks()
+                if (alreadyBorrowed) {
+                    _error.value = "Bu kitabı zaten ödünç aldınız!"
+                    _isLoading.value = false
+                    return@launch // Fonksiyondan çık, aşağıdaki işlemleri yapma
                 }
-            }.onFailure {
-                _error.value = "Kiralama Başarısız: ${it.message}"
+
+                val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+                val calendar = java.util.Calendar.getInstance()
+                val borrowedAt = sdf.format(calendar.time) // Bugün
+
+                calendar.add(java.util.Calendar.DAY_OF_YEAR, 5)
+                val dueDate = sdf.format(calendar.time) // 5 Gün Sonra
+
+                val record = BorrowRecord(
+                    id = java.util.UUID.randomUUID().toString(),
+                    studentId = studentId,
+                    bookId = book.id,
+                    borrowedAt = borrowedAt,
+                    dueDate = dueDate,
+                    returnedAt = null
+                )
+
+                repository.addBorrowRecord(record).onSuccess {
+                    val updatedBook = book.copy(avaiableCopies = book.avaiableCopies - 1)
+                    repository.updateBook(updatedBook.id, updatedBook).onSuccess {
+                        loadBooks()
+                    }
+                }
             }
             _isLoading.value = false
         }
@@ -132,5 +140,9 @@ class BookViewModel : ViewModel() {
                 .onFailure { _error.value = it.message }
             _isLoading.value = false
         }
+    }
+    // Uyarı penceresi kapatıldığında hata mesajını sıfırlar
+    fun clearError() {
+        _error.value = null
     }
 }
