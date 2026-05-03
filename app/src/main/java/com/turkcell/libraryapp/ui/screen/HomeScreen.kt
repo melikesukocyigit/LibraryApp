@@ -18,7 +18,8 @@ import com.turkcell.libraryapp.ui.viewmodel.BookViewModel
 @Composable
 fun HomeScreen(
     authViewModel: AuthViewModel,
-    bookViewModel: BookViewModel
+    bookViewModel: BookViewModel,
+    onNavigateToBorrows: () -> Unit
 ) {
     val books by bookViewModel.books.collectAsState()
     val isLoading by bookViewModel.isLoading.collectAsState()
@@ -31,9 +32,13 @@ fun HomeScreen(
     var newAuthor by remember { mutableStateOf("") }
     var newCategory by remember { mutableStateOf("") }
 
-    Column(modifier = Modifier.fillMaxSize()) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .systemBarsPadding()
+    ) {
 
-        // --- ÜST BAR (Başlık ve Ekle Butonu) ---
+        // --- ÜST BAR (Başlık ve Butonlar) ---
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -61,17 +66,26 @@ fun HomeScreen(
                     }
                 }
 
-                // + Ekle / İptal Butonu
-                Button(
-                    onClick = { isAddingBook = !isAddingBook },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
-                ) {
-                    Text(text = if (isAddingBook) "İptal" else "+ Ekle")
+                // --- SAĞ ÜST BUTONLAR (+ Ekle ve Kiralamalarım) ---
+                Row {
+                    Button(
+                        onClick = { onNavigateToBorrows() },
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
+                    ) {
+                        Text(text = "Kiralamalarım")
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(
+                        onClick = { isAddingBook = !isAddingBook },
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+                    ) {
+                        Text(text = if (isAddingBook) "İptal" else "+ Ekle")
+                    }
                 }
             }
         }
 
-        // --- YENİ KİTAP EKLEME FORMU ---
+        // ---  KİTAP EKLEME FORMU ---
         if (isAddingBook) {
             Column(
                 modifier = Modifier
@@ -158,7 +172,12 @@ fun HomeScreen(
                         BookCard(
                             book = book,
                             onDelete = { id -> bookViewModel.deleteBook(id) },
-                            onUpdate = { updatedBook -> bookViewModel.updateBook(updatedBook) }
+                            onUpdate = { updatedBook -> bookViewModel.updateBook(updatedBook) },
+                            onBorrow = { borrowedBook ->
+                                profileState?.userId?.let { studentId ->
+                                    bookViewModel.borrowBook(borrowedBook, studentId)
+                                }
+                            }
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                     }

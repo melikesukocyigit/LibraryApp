@@ -1,6 +1,7 @@
 package com.turkcell.libraryapp.data.repository
 
 import com.turkcell.libraryapp.data.model.Book
+import com.turkcell.libraryapp.data.model.BorrowRecord
 import com.turkcell.libraryapp.data.supabase.supabase
 import io.github.jan.supabase.postgrest.postgrest
 
@@ -47,11 +48,19 @@ class BookRepository {
             .decodeList<Book>()
     }
 
+    // Kiralama kaydını veritabanına ekleme
+    suspend fun addBorrowRecord(record: BorrowRecord): Result<Unit> = runCatching {
+        supabase.postgrest["borrow_records"].insert(record)
+    }
 
-
-
-    // ÖDEV 2: BookRepository Güncelleme, silme, arama fonksiyonlarını tanımla.
+    // Öğrencinin kiralama geçmişini getirme
+    suspend fun getBorrowRecordsByUserId(userId: String): Result<List<BorrowRecord>> = runCatching {
+        supabase.postgrest["borrow_records"]
+            .select { filter { eq("student_id", userId) } }
+            .decodeList<BorrowRecord>()
+    }
 }
+
 
 
 //  ÖDEV:

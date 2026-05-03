@@ -13,12 +13,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.turkcell.libraryapp.data.model.Book
 
-
 @Composable
 fun BookCard(
     book: Book,
     onDelete: (String) -> Unit,
-    onUpdate: (Book) -> Unit
+    onUpdate: (Book) -> Unit,
+    onBorrow: (Book) -> Unit
 ) {
     var isEditing by remember { mutableStateOf(false) }
     var editedTitle by remember { mutableStateOf(book.title) }
@@ -97,16 +97,27 @@ fun BookCard(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically // Buton ile yazıyı hizalamak için eklendi
             ) {
                 Text(text = book.category, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                Text(
-                    text = if (book.avaiableCopies > 0) "Stokta: ${book.avaiableCopies}" else "Tükendi",
-                    fontWeight = FontWeight.Bold,
-                    color = if (book.avaiableCopies > 0) Color(0xFF2E7D32) else Color.Red
-                )
+
+                if (book.avaiableCopies > 0) {
+                    Button(
+                        onClick = { onBorrow(book) },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32)), // Şık bir yeşil tonu
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                    ) {
+                        Text(text = "ÖDÜNÇ AL", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+                } else {
+                    Text(
+                        text = "STOKTA YOK",
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Red
+                    )
+                }
             }
         }
     }
 }
-//

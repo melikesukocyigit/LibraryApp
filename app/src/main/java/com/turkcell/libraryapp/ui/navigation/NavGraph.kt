@@ -5,12 +5,13 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.turkcell.libraryapp.ui.screen.LoginScreen
 import com.turkcell.libraryapp.ui.screen.RegisterScreen
-import com.turkcell.libraryapp.ui.viewmodel.AuthViewModel
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.turkcell.libraryapp.ui.screen.HomeScreen
 import com.turkcell.libraryapp.ui.screen.SplashScreen
+import com.turkcell.libraryapp.ui.screen.BorrowsScreen // YENİ SAYFAMIZI İÇERİ AKTARDIK
+import com.turkcell.libraryapp.ui.viewmodel.AuthViewModel
 import com.turkcell.libraryapp.ui.viewmodel.BookViewModel
 
 @Composable
@@ -22,6 +23,7 @@ fun NavGraph(navController: NavHostController = rememberNavController()) {
         navController = navController,
         startDestination = Screen.Login.route
     ) {
+        // SPLASH EKRANI
         composable(Screen.Splash.route) {
             SplashScreen(authViewModel,
                 onAuthenticated = { role ->
@@ -36,25 +38,13 @@ fun NavGraph(navController: NavHostController = rememberNavController()) {
                     }
                 })
         }
-        composable(Screen.Login.route) { LoginScreen(
-            onNavigateToRegister = { navController.navigate(Screen.Register.route) },
-            onLoginSuccess = {role ->
-                navController.navigate(Screen.Homepage.route) {
-                    popUpTo(Screen.Login.route) {inclusive=true}
-                    // Yığın yalnızca verilen URL ile kalacaktı (false)
-                }
-            },
-            authViewModel
-        ) }
 
-
-        // GİRİŞ EKRANI
+        // GİRİŞ EKRANI (Çift yazım temizlendi)
         composable(Screen.Login.route) {
             LoginScreen(
                 onNavigateToRegister = { navController.navigate(Screen.Register.route) },
                 onLoginSuccess = { role ->
                     navController.navigate(Screen.Homepage.route) {
-                        // Giriş yaptıktan sonra geri tuşuyla tekrar login ekranına dönülmesin diye yığını temizliyoruz
                         popUpTo(Screen.Login.route) { inclusive = true }
                     }
                 },
@@ -62,12 +52,11 @@ fun NavGraph(navController: NavHostController = rememberNavController()) {
             )
         }
 
-        // ÖDEV 1: Kayıt Ol success yapısı
+        // KAYIT EKRANI
         composable(Screen.Register.route) {
             RegisterScreen(
                 onNavigateToLogin = { navController.navigate(Screen.Login.route) },
                 onRegisterSuccess = {
-                    // Kayıt başarılı olduğunda doğrudan ana sayfaya yönlendirme
                     navController.navigate(Screen.Homepage.route) {
                         popUpTo(Screen.Register.route) { inclusive = true }
                     }
@@ -76,11 +65,22 @@ fun NavGraph(navController: NavHostController = rememberNavController()) {
             )
         }
 
-        // ANA SAYFA (Kitap Listesi)
+        // ANA SAYFA
         composable(Screen.Homepage.route) {
             HomeScreen(
                 authViewModel = authViewModel,
-                bookViewModel = bookViewModel
+                bookViewModel = bookViewModel,
+                onNavigateToBorrows = { navController.navigate("borrows") }
+            )
+        }
+
+
+        // YENİ: KİRALAMALAR SAYFASI
+        composable("borrows") {
+            BorrowsScreen(
+                authViewModel = authViewModel,
+                bookViewModel = bookViewModel,
+                onNavigateBack = { navController.popBackStack() }
             )
         }
     }

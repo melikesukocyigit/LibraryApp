@@ -3,10 +3,14 @@ package com.turkcell.libraryapp.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.turkcell.libraryapp.data.model.Book
+import com.turkcell.libraryapp.data.model.BorrowRecord
 import com.turkcell.libraryapp.data.repository.BookRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
 import java.util.UUID
 
 class BookViewModel : ViewModel() {
@@ -20,6 +24,9 @@ class BookViewModel : ViewModel() {
 
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
+
+    private val _borrowRecords = MutableStateFlow<List<BorrowRecord>>(emptyList())
+    val borrowRecords: StateFlow<List<BorrowRecord>> = _borrowRecords
 
     init {
         loadBooks()
@@ -79,6 +86,50 @@ class BookViewModel : ViewModel() {
                 avaiableCopies = 1
             )
             repository.addBook(newBook).onSuccess { loadBooks() }
+            _isLoading.value = false
+        }
+    }
+
+    fun borrowBook(book: Book, studentId: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+
+            val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+            val calendar = java.util.Calendar.getInstance()
+            val borrowedAt = sdf.format(calendar.time) // Bugün
+
+            calendar.add(java.util.Calendar.DAY_OF_YEAR, 5)
+            val dueDate = sdf.format(calendar.time) // 5 Gün Sonra
+
+            val record = BorrowRecord(
+                id = java.util.UUID.randomUUID().toString(),
+                studentId = studentId,
+                bookId = book.id,
+                borrowedAt = borrowedAt,
+                dueDate = dueDate,
+                returnedAt = null
+            )
+
+            // Kaydı oluştur, başarılıysa stoku düşür ve sayfayı yenile
+            repository.addBorrowRecord(record).onSuccess {
+                val updatedBook = book.copy(avaiableCopies = book.avaiableCopies - 1)
+                repository.updateBook(updatedBook.id, updatedBook).onSuccess {
+                    loadBooks()
+                }
+            }.onFailure {
+                _error.value = "Kiralama Başarısız: ${it.message}"
+            }
+            _isLoading.value = false
+        }
+    }
+
+    // Öğrencinin kiraladığı kitapları yükle
+    fun loadBorrowRecords(userId: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            repository.getBorrowRecordsByUserId(userId)
+                .onSuccess { _borrowRecords.value = it }
+                .onFailure { _error.value = it.message }
             _isLoading.value = false
         }
     }
